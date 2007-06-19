@@ -711,7 +711,7 @@ def tags_getListUser(user_id=''):
     method = 'flickr.tags.getListUser'
     auth = user_id == ''
     data = _doget(method, auth=auth, user_id=user_id)
-    if instanceof(data.rsp.tags.tag, list):
+    if isinstance(data.rsp.tags.tag, list):
         return [tag.text for tag in data.rsp.tags.tag]
     else:
         return [data.rsp.tags.tag.text]
@@ -722,7 +722,7 @@ def tags_getListUserPopular(user_id='', count=''):
     auth = user_id == ''
     data = _doget(method, auth=auth, user_id=user_id)
     result = {}
-    if instanceof(data.rsp.tags.tag, list):
+    if isinstance(data.rsp.tags.tag, list):
         for tag in data.rsp.tags.tag:
             result[tag.text] = tag.count
     else:
@@ -733,7 +733,7 @@ def tags_getrelated(tag):
     """Gets the related tags for given tag."""
     method = 'flickr.tags.getRelated'
     data = _doget(method, auth=False, tag=tag)
-    if instanceof(data.rsp.tags.tag, list):
+    if isinstance(data.rsp.tags.tag, list):
         return [tag.text for tag in data.rsp.tags.tag]
     else:
         return [data.rsp.tags.tag.text]
@@ -742,7 +742,7 @@ def contacts_getPublicList(user_id):
     """Gets the contacts (Users) for the user_id"""
     method = 'flickr.contacts.getPublicList'
     data = _doget(method, auth=False, user_id=user_id)
-    if instanceof(data.rsp.contacts.contact, list):
+    if isinstance(data.rsp.contacts.contact, list):
         return [User(user.nsid, username=user.username) \
                 for user in data.rsp.contacts.contact]
     else:
