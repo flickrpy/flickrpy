@@ -1,6 +1,7 @@
 """
     flickr.py
-    Copyright 2004-6 James Clarke <james@jamesclarke.info>
+    Copyright 2004-2007 James Clarke <james@jamesclarke.info>
+    Copyright 2007 Joshua Henderson <joshhendo@gmail.com>
 
 THIS SOFTWARE IS SUPPLIED WITHOUT WARRANTY OF ANY KIND, AND MAY BE
 COPIED, MODIFIED OR DISTRIBUTED IN ANY WAY, AS LONG AS THIS NOTICE
@@ -41,16 +42,18 @@ TOOD list:
 __author__ = "James Clarke <james@jamesclarke.info>"
 __version__ = "$Rev$"
 __date__ = "$Date$"
-__copyright__ = "Copyright 2004-6 James Clarke"
+__copyright__ = "Copyright 2004-2007 James Clarke"
 
 from urllib import urlencode, urlopen
 from xml.dom import minidom
+import hashlib
 
 HOST = 'http://flickr.com'
 API = '/services/rest'
 
 #set these here or using flickr.API_KEY in your application
 API_KEY = ''
+API_SECRET = ''
 email = None
 password = None
 
@@ -788,6 +791,9 @@ def _doget(method, auth=False, **params):
     if auth:
         url = url + '&email=%s&password=%s' % (email, password)
 
+    if not token == NULL:
+        print ""
+
     #another useful debug print statement
     #print url
     
@@ -884,6 +890,32 @@ def uniq(alist):    # Fastest without order preserving
     set = {}
     map(set.__setitem__, alist, [])
     return set.keys()
+
+
+## Authentication Module by Joshua Henderson
+## Work in Progress; Incomplete
+class Auth():
+    def getFrob(self):
+        """Returns a frob that is used in authentication"""
+        method = 'flickr.auth.getFrob'
+        signature_string = hashlib.md5(API_SECRET + 'api_key' + API_KEY + 'method' + method).hexdigest()
+        data = _doget(method, auth=False, api_sig=signature_string)
+        return data.rsp.frob.text
+
+    def loginLink(self, permission, frob):
+        """Generates a link that the user should be sent to"""
+        myAuth = Auth()
+        signature_api = hashlib.md5(API_SECRET + 'api_key' + API_KEY + 'frob' + frob + 'perms' + permission).hexdigest()
+        perms = permission
+        link = "http://flickr.com/services/auth/?api_key=" + API_KEY+ "&perms=" + perms + "&frob=" + frob + "&api_sig=" + signature_api
+        return link
+
+    def getToken(self, frob):
+        """This token is what needs to be used in future API calls"""
+        method = 'flickr.auth.getToken'
+        signature_token = hashlib.md5(API_SECRET + 'api_key' + API_KEY + 'frob' + frob + 'method' + method).hexdigest()
+        data = _doget(method, auth=False, api_sig=signature_token, api_key=API_KEY, frob=frob)
+        return data.rsp.auth.token.text
 
 if __name__ == '__main__':
     print test_echo()
