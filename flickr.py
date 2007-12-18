@@ -1,42 +1,50 @@
 """
     flickr.py
-    Copyright 2004-2007 James Clarke <james@jamesclarke.info>
-    Copyright 2007 Joshua Henderson <joshhendo@gmail.com>
+    Copyright 2004-2006 James Clarke <james@jamesclarke.info>
+    Portions Copyright 2007 Joshua Henderson <joshhendo@gmail.com>
 
 THIS SOFTWARE IS SUPPLIED WITHOUT WARRANTY OF ANY KIND, AND MAY BE
 COPIED, MODIFIED OR DISTRIBUTED IN ANY WAY, AS LONG AS THIS NOTICE
 AND ACKNOWLEDGEMENT OF AUTHORSHIP REMAIN.
 
+2007-12-17
+  For an upto date TODO list, please see:
+  http://code.google.com/p/flickrpy/wiki/TodoList
+
+  For information on how to use the Authentication
+  module, plese see:
+  http://code.google.com/p/flickrpy/wiki/UserAuthentication
+
 2006-12-19
-Applied patches from Berco Beute and Wolfram Kriesing.
-TODO list below is out of date!
+  Applied patches from Berco Beute and Wolfram Kriesing.
+  TODO list below is out of date!
 
 2005-06-10
-TOOD list:
-* flickr.blogs.*
-* flickr.contacts.getList
-* flickr.groups.browse
-* flickr.groups.getActiveList
-* flickr.people.getOnlineList
-* flickr.photos.getContactsPhotos
-* flickr.photos.getContactsPublicPhotos
-* flickr.photos.getContext
-* flickr.photos.getCounts
-* flickr.photos.getExif
-* flickr.photos.getNotInSet
-* flickr.photos.getPerms
-* flickr.photos.getRecent
-* flickr.photos.getUntagged
-* flickr.photos.setDates
-* flickr.photos.setPerms
-* flickr.photos.licenses.*
-* flickr.photos.notes.*
-* flickr.photos.transform.*
-* flickr.photosets.getContext
-* flickr.photosets.orderSets
-* flickr.reflection.* (not important)
-* flickr.tags.getListPhoto
-* flickr.urls.*
+  TOOD list:
+  * flickr.blogs.*
+  * flickr.contacts.getList
+  * flickr.groups.browse
+  * flickr.groups.getActiveList
+  * flickr.people.getOnlineList
+  * flickr.photos.getContactsPhotos
+  * flickr.photos.getContactsPublicPhotos
+  * flickr.photos.getContext
+  * flickr.photos.getCounts
+  * flickr.photos.getExif
+  * flickr.photos.getNotInSet
+  * flickr.photos.getPerms
+  * flickr.photos.getRecent
+  * flickr.photos.getUntagged
+  * flickr.photos.setDates
+  * flickr.photos.setPerms
+  * flickr.photos.licenses.*
+  * flickr.photos.notes.*
+  * flickr.photos.transform.*
+  * flickr.photosets.getContext
+  * flickr.photosets.orderSets
+  * flickr.reflection.* (not important)
+  * flickr.tags.getListPhoto
+  * flickr.urls.*
 """
 
 __author__ = "James Clarke <james@jamesclarke.info>"
@@ -47,15 +55,28 @@ __copyright__ = "Copyright 2004-2007 James Clarke"
 from urllib import urlencode, urlopen
 from xml.dom import minidom
 import hashlib
+import os
 
 HOST = 'http://flickr.com'
 API = '/services/rest'
 
-#set these here or using flickr.API_KEY in your application
+# set these here or using flickr.API_KEY in your application
 API_KEY = ''
 API_SECRET = ''
 email = None
 password = None
+
+
+# The next 2 variables are only importatnt if authentication is used
+
+# this can be set here or using flickr.tokenPath in your application
+# this is the path to the folder containing tokenFile (default: token.txt)
+tokenPath = ''
+
+# this can be set here or using flickr.tokenFile in your application
+# this is the name of the file containing the stored token.
+tokenFile = 'token.txt'
+
 
 class FlickrError(Exception): pass
 
@@ -508,7 +529,8 @@ class Group(object):
                  privacy=None, chatid=None, chatcount=None):
         self.__loaded = False
         self.__id = id
-        self.__name = name
+        self.__name = nameSyntaxError: EOL while scanning single-quoted string
+
         self.__members = members
         self.__online = online
         self.__privacy = privacy
@@ -788,12 +810,38 @@ def _doget(method, auth=False, **params):
         
     url = '%s%s/?api_key=%s&method=%s&%s'% \
           (HOST, API, API_KEY, method, urlencode(params))
+    
     if auth:
-        url = url + '&email=%s&password=%s' % (email, password)
+        # Script has been edited to handle the new
+        # Flickr API Authentication System
+        token = userToken()
+        paramaters = ['API_KEY', 'method', 'auth_token']
+
+        for item in params.items():
+            paramaters.append(item[0])
+
+        paramaters.sort()
+
+        api_string = API_SECRET
+        for item in paramaters:
+            for chocolate in params.items():
+                if item == chocolate[0]:
+                    api_string = api_string + item + chocolate[1]
+            if item == 'method':
+                api_string = api_string + 'method' + method
+            if item == 'API_KEY':
+                api_string = api_string + 'api_key' + API_KEY
+            if item == 'auth_token':
+                api_string = api_string + 'auth_token' + token
+                    
+        api_signature = hashlib.md5(api_string)
+        
+        url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
+
+        # OLD: url = url + '&email=%s&password=%s' % (email, password)
 
     if not token == NULL:
         print ""
-
     #another useful debug print statement
     #print url
     
@@ -891,9 +939,50 @@ def uniq(alist):    # Fastest without order preserving
     map(set.__setitem__, alist, [])
     return set.keys()
 
+## Only the "getList" module is complete.
+## Work in Progress; Nearly Finished
+class Blogs():
+    def getList(self,auth=True):
+        """blogs.getList requires READ authentication"""
+        # please read documentation on how to use this
+        
+        method = 'flickr.blogs.getList'
+        if auth==True : data = _doget(method, auth=True)
+        if not auth==True : data = _doget(method, auth=False)
+        
+        bID = []
+        bName = []
+        bNeedsPword = []
+        bURL = []
+        
+        try:
+            for plog in data.rsp.blogs.blog:
+                bID.append(plog.id)
+                bName.append(plog.name)
+                bNeedsPword.append(plog.needspassword)
+                bURL.append(plog.url)
+        except TypeError:
+            try:
+                bID.append(data.rsp.blogs.blog.id)
+                bName.append(data.rsp.blogs.blog.name)
+                bNeedsPword.append(data.rsp.blogs.blog.needspassword)
+                bURL.append(data.rsp.blogs.blog.url)
+            except AttributeError:
+                return "AttributeError, unexplained!"
+            except:
+                return "Unknown error!"
+        except AttributeError:
+            return "There are no blogs!"
+		
+        myReturn = [bID,bName,bNeedsPword,bURL]
+        return myReturn
+
+    def postPhoto(self, blogID, photoID, title, description, bpassword):
+        """blogs.postPhoto requires WRITE authentication"""
+        method = 'flickr.blogs.postPhoto'
+        return None
 
 ## Authentication Module by Joshua Henderson
-## Work in Progress; Incomplete
 class Auth():
     def getFrob(self):
         """Returns a frob that is used in authentication"""
@@ -916,6 +1005,19 @@ class Auth():
         signature_token = hashlib.md5(API_SECRET + 'api_key' + API_KEY + 'frob' + frob + 'method' + method).hexdigest()
         data = _doget(method, auth=False, api_sig=signature_token, api_key=API_KEY, frob=frob)
         return data.rsp.auth.token.text
+
+def userToken(self):
+    # This method allows you flickr.py to retrive the saved token
+    # as once the token for a program has been got from flickr, 
+    # it cannot be got again, so flickr.py saves it in a file
+    # called token.txt (default) somewhere.
+    if not tokenPath == '':
+        f = file(os.path.join(tokenPath,tokenFile),'r')
+    else:
+        f = file(tokenFile,'r')
+    token = f.read()
+    f.close()
+    return token
 
 if __name__ == '__main__':
     print test_echo()
