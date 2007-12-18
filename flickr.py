@@ -822,7 +822,6 @@ def _doget(method, auth=False, **params):
 
         paramaters.sort()
 
-        api_string = API_SECRET
         api_string = [API_SECRET]
         for item in paramaters:
             for chocolate in params.items():
@@ -839,7 +838,7 @@ def _doget(method, auth=False, **params):
                 api_string.append('auth_token')
                 api_string.append(token)
                     
-        api_signature = hashlib.md5(''.join(api_string))
+        api_signature = hashlib.md5(''.join(api_string)).hexdigest()
         
         url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
 
