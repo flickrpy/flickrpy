@@ -17,34 +17,7 @@ AND ACKNOWLEDGEMENT OF AUTHORSHIP REMAIN.
 
 2006-12-19
   Applied patches from Berco Beute and Wolfram Kriesing.
-  TODO list below is out of date!
 
-2005-06-10
-  TOOD list:
-  * flickr.blogs.*
-  * flickr.contacts.getList
-  * flickr.groups.browse
-  * flickr.groups.getActiveList
-  * flickr.people.getOnlineList
-  * flickr.photos.getContactsPhotos
-  * flickr.photos.getContactsPublicPhotos
-  * flickr.photos.getContext
-  * flickr.photos.getCounts
-  * flickr.photos.getExif
-  * flickr.photos.getNotInSet
-  * flickr.photos.getPerms
-  * flickr.photos.getRecent
-  * flickr.photos.getUntagged
-  * flickr.photos.setDates
-  * flickr.photos.setPerms
-  * flickr.photos.licenses.*
-  * flickr.photos.notes.*
-  * flickr.photos.transform.*
-  * flickr.photosets.getContext
-  * flickr.photosets.orderSets
-  * flickr.reflection.* (not important)
-  * flickr.tags.getListPhoto
-  * flickr.urls.*
 """
 
 __author__ = "James Clarke <james@jamesclarke.info>"
@@ -529,7 +502,7 @@ class Group(object):
                  privacy=None, chatid=None, chatcount=None):
         self.__loaded = False
         self.__id = id
-        self.__name = nameSyntaxError: EOL while scanning single-quoted string
+        self.__name = name
 
         self.__members = members
         self.__online = online
@@ -844,8 +817,8 @@ def _doget(method, auth=False, **params):
 
         # OLD: url = url + '&email=%s&password=%s' % (email, password)
 
-    if not token == NULL:
-        print ""
+    #if not token == none:
+    #    print ""
     #another useful debug print statement
     #print url
     
@@ -1026,6 +999,16 @@ def userToken(self):
     token = f.read()
     f.close()
     return token
+
+def getUserPhotosURL(userid):
+    """Returns user URL in an array (to access, use array[1])"""
+    # This addition has been added upon request of
+    # nsteinmetz. It will be "cleaned up" at another
+    # time.
+    method = 'flickr.urls.getUserPhotos'
+    data = _doget(method, user_id=userid)
+    userurl = [data.rsp.user.nsid,data.rsp.user.url]
+    return userurl
 
 if __name__ == '__main__':
     print test_echo()
