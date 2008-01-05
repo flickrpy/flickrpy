@@ -959,7 +959,13 @@ class Blogs():
         method = 'flickr.blogs.postPhoto'
         return None
 
-## Authentication Module by Joshua Henderson
+class Urls():
+    def getUserPhotosURL(userid):
+        """Returns user URL in an array (to access, use array[1])"""
+        method = 'flickr.urls.getUserPhotos'
+        data = _doget(method, user_id=userid)
+        return [data.rsp.user.nsid,data.rsp.user.url]
+
 class Auth():
     def getFrob(self):
         """Returns a frob that is used in authentication"""
