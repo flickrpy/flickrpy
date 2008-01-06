@@ -1,7 +1,7 @@
 """
     flickr.py
     Copyright 2004-2006 James Clarke <james@jamesclarke.info>
-    Portions Copyright 2007 Joshua Henderson <joshhendo@gmail.com>
+    Portions Copyright 2007-2008 Joshua Henderson <joshhendo@gmail.com>
 
 THIS SOFTWARE IS SUPPLIED WITHOUT WARRANTY OF ANY KIND, AND MAY BE
 COPIED, MODIFIED OR DISTRIBUTED IN ANY WAY, AS LONG AS THIS NOTICE
@@ -23,7 +23,7 @@ AND ACKNOWLEDGEMENT OF AUTHORSHIP REMAIN.
 __author__ = "James Clarke <james@jamesclarke.info>"
 __version__ = "$Rev$"
 __date__ = "$Date$"
-__copyright__ = "Copyright 2004-2007 James Clarke"
+__copyright__ = "Copyright: 2004-2006 James Clarke; Portions: 2007-2008 Joshua Henderson"
 
 from urllib import urlencode, urlopen
 from xml.dom import minidom
@@ -970,7 +970,7 @@ class Auth():
     def getFrob(self):
         """Returns a frob that is used in authentication"""
         method = 'flickr.auth.getFrob'
-        sig_str = "%(API_SECRET)sapi_key%(API_KEY)smethod%(method)s"
+        sig_str = API_SECRET + 'api_key' + API_KEY + 'method' + method
         signature_hash = hashlib.md5(sig_str).hexdigest()
         data = _doget(method, auth=False, api_sig=signature_hash)
         return data.rsp.frob.text
@@ -978,7 +978,7 @@ class Auth():
     def loginLink(self, permission, frob):
         """Generates a link that the user should be sent to"""
         myAuth = Auth()
-        sig_str = "%(API_SECRET)sapi_key%(API_KEY)sfrob%(frob)sperms%(permission)s" % locals()
+        sig_str = API_SECRET + 'api_key' + API_KEY + 'frob' + frob + 'perms' + permission
         signature_hash = hashlib.md5(sig_str).hexdigest()
         perms = permission
         link = "http://flickr.com/services/auth/?api_key=%s&perms=%s&frob=%s&api_sig=%s" % (API_KEY, perms, frob, signature_hash)
@@ -987,7 +987,7 @@ class Auth():
     def getToken(self, frob):
         """This token is what needs to be used in future API calls"""
         method = 'flickr.auth.getToken'
-        sig_str = "%(API_SECRET)sapi_key%(API_KEY)sfrob%(frob)smethod%(method)s" % locals()
+        sig_str = API_SECRET + 'api_key' + API_KEY + 'frob' + frob + 'method' + method
         signature_hash = hashlib.md5(sig_str).hexdigest()
         data = _doget(method, auth=False, api_sig=signature_hash, 
                       api_key=API_KEY, frob=frob)
