@@ -34,8 +34,8 @@ HOST = 'http://flickr.com'
 API = '/services/rest'
 
 # set these here or using flickr.API_KEY in your application
-API_KEY = ''
-API_SECRET = ''
+API_KEY = '75f063846b96080c16ce4156f9d65a31'
+API_SECRET = '96dfdbc28e68ef1e'
 email = None
 password = None
 
@@ -740,12 +740,20 @@ def contacts_getPublicList(user_id):
     """Gets the contacts (Users) for the user_id"""
     method = 'flickr.contacts.getPublicList'
     data = _doget(method, auth=False, user_id=user_id)
-    if isinstance(data.rsp.contacts.contact, list):
-        return [User(user.nsid, username=user.username) \
-                for user in data.rsp.contacts.contact]
-    else:
-        user = data.rsp.contacts.contact
-        return [User(user.nsid, username=user.username)]
+
+    try:
+      if isinstance(data.rsp.contacts.contact, list):
+          return [User(user.nsid, username=user.username) \
+                  for user in data.rsp.contacts.contact]
+
+    except AttributeError:
+      return "No users in the list"
+    except:
+      return "Unknown error"
+
+#   else:
+#       user = data.rsp.contacts.contact
+#       return [User(user.nsid, username=user.username)]
 
 def interestingness():
     method = 'flickr.interestingness.getList'
