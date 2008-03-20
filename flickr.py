@@ -34,8 +34,8 @@ HOST = 'http://flickr.com'
 API = '/services/rest'
 
 # set these here or using flickr.API_KEY in your application
-API_KEY = '75f063846b96080c16ce4156f9d65a31'
-API_SECRET = '96dfdbc28e68ef1e'
+API_KEY = ''
+API_SECRET = ''
 email = None
 password = None
 
@@ -608,6 +608,27 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
         photos = [_parse_photo(data.rsp.photos.photo)]
     return photos
 
+def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
+                  min_upload_date='', max_upload_date='',\
+                  min_taken_date='', max_taken_date='', \
+                  license='', per_page='', page='', sort=''):
+    """Returns the number of pages for the previous function (photos_search())
+    """
+	
+    method = 'flickr.photos.search'
+
+    data = _doget(method, auth=auth, user_id=user_id, tags=tags, text=text,\
+                  min_upload_date=min_upload_date,\
+                  max_upload_date=max_upload_date, \
+                  min_taken_date=min_taken_date, \
+                  max_taken_date=max_taken_date, \
+                  license=license, per_page=per_page,\
+                  page=page, sort=sort)
+	
+	return data.rsp.photos.pages
+	
+	
+	
 #XXX: Could be class method in User
 def people_findByEmail(email):
     """Returns User object."""
