@@ -625,7 +625,7 @@ def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   license=license, per_page=per_page,\
                   page=page, sort=sort)
 	
-	return data.rsp.photos.pages
+    return data.rsp.photos.pages
 	
 	
 	
