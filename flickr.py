@@ -871,8 +871,38 @@ def _dopost(method, auth=False, **params):
 
     payload = 'api_key=%s&method=%s&%s'% \
           (API_KEY, method, urlencode(params))
+
     if auth:
-        payload = payload + '&email=%s&password=%s' % (email, password)
+        # Script has been edited to handle the new
+        # Flickr API Authentication System
+        token = userToken()
+        paramaters = ['API_KEY', 'method', 'auth_token']
+
+        for item in params.items():
+            paramaters.append(item[0])
+
+        paramaters.sort()
+
+        api_string = [API_SECRET]
+        for item in paramaters:
+            for chocolate in params.items():
+                if item == chocolate[0]:
+                    api_string.append(item)
+                    api_string.append(chocolate[1])
+            if item == 'method':
+                api_string.append('method')
+                api_string.append(method)
+            if item == 'API_KEY':
+                api_string.append('api_key')
+                api_string.append(API_KEY)
+            if item == 'auth_token':
+                api_string.append('auth_token')
+                api_string.append(token)
+                    
+        api_signature = hashlib.md5(''.join(api_string)).hexdigest()
+        
+        url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
+#        payload = payload + '&email=%s&password=%s' % (email, password)
 
     #another useful debug print statement
     #print url
