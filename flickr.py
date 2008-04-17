@@ -1022,7 +1022,7 @@ class Auth():
                       api_key=API_KEY, frob=frob)
         return data.rsp.auth.token.text
 
-def userToken(self):
+def userToken():
     # This method allows you flickr.py to retrive the saved token
     # as once the token for a program has been got from flickr, 
     # it cannot be got again, so flickr.py saves it in a file
