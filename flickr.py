@@ -273,6 +273,21 @@ class Photo(object):
         loc = data.rsp.photo.location
         return [loc.latitude, loc.longitude]
         
+        
+    def getComments(self) :
+        """"
+        get list of comments for photo
+        returns a list of comment objects
+        comment text is in return [item].text
+        """
+        method = "flickr.photos.comments.getList"
+        try:
+            data = _doget(method,  photo_id=self.id)
+        except FlickrError: # ???? what errors might there be????
+            return None
+        return data.rsp.comments
+            
+    
                 
 class Photoset(object):
     """A Flickr photoset."""
