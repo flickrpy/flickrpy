@@ -471,11 +471,15 @@ class User(object):
             self.__icon_url = 'http://www.flickr.com/images/buddyicon.jpg'
         
         self.__username = person.username.text
-        self.__realname = person.realname.text
-        self.__location = person.location.text
-        self.__photos_firstdate = person.photos.firstdate.text
-        self.__photos_firstdatetaken = person.photos.firstdatetaken.text
-        self.__photos_count = person.photos.count.text
+        self.__realname = getattr((getattr(person,  'realname',  u'')), 'text', u'')
+        self.__location = getattr((getattr(person,  'location',  u'')), 'text', u'')
+        self.__photos_count = getattr((getattr(getattr(person,  'photos',  None),  'count',  u'')), 'text', u'')
+        if self.__photos_count:
+            self.__photos_firstdate = person.photos.firstdate.text
+            self.__photos_firstdatetaken = person.photos.firstdatetaken.text
+        else:
+            self.__photos_firstdate = None
+            self.__photos_firstdatetaken = None
 
     def __str__(self):
         return '<Flickr User %s>' % self.id
@@ -484,7 +488,10 @@ class User(object):
         """Returns a list of Photosets."""
         method = 'flickr.photosets.getList'
         data = _doget(method, user_id=self.id)
+        
         sets = []
+        if not getattr(data.rsp.photosets,  'photoset',None):
+            return sets        #N.B. returns an empty set
         if isinstance(data.rsp.photosets.photoset, list):
             for photoset in data.rsp.photosets.photoset:
                 sets.append(Photoset(photoset.id, photoset.title.text,\
@@ -601,7 +608,8 @@ class Tag(object):
 def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_upload_date='', max_upload_date='',\
                   min_taken_date='', max_taken_date='', \
-                  license='', per_page='', page='', sort=''):
+                  license='', per_page='', page='', sort='',\
+                  safe_search='', content_type='' ):
     """Returns a list of Photo objects.
 
     If auth=True then will auth the user.  Can see private etc
@@ -614,7 +622,8 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_taken_date=min_taken_date, \
                   max_taken_date=max_taken_date, \
                   license=license, per_page=per_page,\
-                  page=page, sort=sort)
+                  page=page, sort=sort,  safe_search=safe_search, \
+                  content_type=content_type)
     photos = []
     if isinstance(data.rsp.photos.photo, list):
         for photo in data.rsp.photos.photo:
