@@ -623,7 +623,8 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   max_taken_date=max_taken_date, \
                   license=license, per_page=per_page,\
                   page=page, sort=sort,  safe_search=safe_search, \
-                  content_type=content_type)
+                  content_type=content_type, \
+                  tag_mode=tag_mode)
     photos = []
     if isinstance(data.rsp.photos.photo, list):
         for photo in data.rsp.photos.photo:
