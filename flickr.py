@@ -837,10 +837,19 @@ def _doget(method, auth=False, **params):
     url = '%s%s/?api_key=%s&method=%s&%s'% \
           (HOST, API, API_KEY, method, urlencode(params))
     
+    # Script has been edited to handle the new
+    # Flickr API Authentication System
+    
+    authenticate = False
     if auth:
-        # Script has been edited to handle the new
-        # Flickr API Authentication System
         token = userToken()
+        authentication = True;
+
+    if (auth != True) or (auth != False):
+        token = auth;
+        authentication = True;
+        
+    if authentication:
         paramaters = ['API_KEY', 'method', 'auth_token']
 
         for item in params.items():
