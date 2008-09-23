@@ -841,12 +841,12 @@ def _doget(method, auth=False, **params):
     # Script has been edited to handle the new
     # Flickr API Authentication System
     
-    authenticate = False
+    authentication = False
     if auth:
         token = userToken()
         authentication = True;
 
-    if (auth != True) or (auth != False):
+    elif auth != False:
         token = auth;
         authentication = True;
         
