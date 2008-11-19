@@ -38,6 +38,7 @@ API_KEY = ''
 API_SECRET = ''
 email = None
 password = None
+AUTH = False
 
 
 # The next 2 variables are only importatnt if authentication is used
@@ -626,11 +627,12 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   content_type=content_type, \
                   tag_mode=tag_mode)
     photos = []
-    if isinstance(data.rsp.photos.photo, list):
-        for photo in data.rsp.photos.photo:
-            photos.append(_parse_photo(photo))
-    else:
-        photos = [_parse_photo(data.rsp.photos.photo)]
+    if data.rsp.photos.__dict__.has_key('photo'):
+        if isinstance(data.rsp.photos.photo, list):
+            for photo in data.rsp.photos.photo:
+                photos.append(_parse_photo(photo))
+        else:
+            photos = [_parse_photo(data.rsp.photos.photo)]
     return photos
 
 def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
@@ -830,124 +832,94 @@ def _doget(method, auth=False, **params):
     #uncomment to check you aren't killing the flickr server
     #print "***** do get %s" % method
 
-    #convert lists to strings with ',' between items
-    for (key, value) in params.items():
-        if isinstance(value, list):
-            params[key] = ','.join([item for item in value])
-        
-    url = '%s%s/?api_key=%s&method=%s&%s'% \
-          (HOST, API, API_KEY, method, urlencode(params))
-    
-    # Script has been edited to handle the new
-    # Flickr API Authentication System
-    
-    authentication = False
-    if auth:
-        token = userToken()
-        authentication = True;
+    params = _prepare_params(params)
+    url = '%s%s/?api_key=%s&method=%s&%s%s'% \
+          (HOST, API, API_KEY, method, urlencode(params),
+                  _get_auth_url_suffix(method, auth, params))
 
-    elif auth != False:
-        token = auth;
-        authentication = True;
-        
-    if authentication:
-        paramaters = ['API_KEY', 'method', 'auth_token']
-
-        for item in params.items():
-            paramaters.append(item[0])
-
-        paramaters.sort()
-
-        api_string = [API_SECRET]
-        for item in paramaters:
-            for chocolate in params.items():
-                if item == chocolate[0]:
-                    api_string.append(item)
-                    api_string.append(chocolate[1])
-            if item == 'method':
-                api_string.append('method')
-                api_string.append(method)
-            if item == 'API_KEY':
-                api_string.append('api_key')
-                api_string.append(API_KEY)
-            if item == 'auth_token':
-                api_string.append('auth_token')
-                api_string.append(token)
-                    
-        api_signature = hashlib.md5(''.join(api_string)).hexdigest()
-        
-        url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
-
-        # OLD: url = url + '&email=%s&password=%s' % (email, password)
-
-    #if not token == none:
-    #    print ""
     #another useful debug print statement
     #print url
     
-    xml = minidom.parse(urlopen(url))
-    data = unmarshal(xml)
-    if not data.rsp.stat == 'ok':
-        msg = "ERROR [%s]: %s" % (data.rsp.err.code, data.rsp.err.msg)
-        raise FlickrError, msg
-    return data
+    return _get_data(minidom.parse(urlopen(url)))
 
 def _dopost(method, auth=False, **params):
     #uncomment to check you aren't killing the flickr server
     #print "***** do post %s" % method
 
-    #convert lists to strings with ',' between items
-    for (key, value) in params.items():
-        if isinstance(value, list):
-            params[key] = ','.join([item for item in value])
-
-    url = '%s%s/' % (HOST, API)
-
+    params = _prepare_params(params)
+    url = '%s%s/%s' % (HOST, API, _get_auth_url_suffix(method, auth, params))
     payload = 'api_key=%s&method=%s&%s'% \
           (API_KEY, method, urlencode(params))
-
-    if auth:
-        # Script has been edited to handle the new
-        # Flickr API Authentication System
-        token = userToken()
-        paramaters = ['API_KEY', 'method', 'auth_token']
-
-        for item in params.items():
-            paramaters.append(item[0])
-
-        paramaters.sort()
-
-        api_string = [API_SECRET]
-        for item in paramaters:
-            for chocolate in params.items():
-                if item == chocolate[0]:
-                    api_string.append(item)
-                    api_string.append(chocolate[1])
-            if item == 'method':
-                api_string.append('method')
-                api_string.append(method)
-            if item == 'API_KEY':
-                api_string.append('api_key')
-                api_string.append(API_KEY)
-            if item == 'auth_token':
-                api_string.append('auth_token')
-                api_string.append(token)
-                    
-        api_signature = hashlib.md5(''.join(api_string)).hexdigest()
-        
-        url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
-#        payload = payload + '&email=%s&password=%s' % (email, password)
 
     #another useful debug print statement
     #print url
     #print payload
     
-    xml = minidom.parse(urlopen(url, payload))
+    return _get_data(minidom.parse(urlopen(url, payload)))
+
+def _prepare_params(params):
+    """Convert lists to strings with ',' between items."""
+    for (key, value) in params.items():
+        if isinstance(value, list):
+            params[key] = ','.join([item for item in value])
+    return params
+
+def _get_data(xml):
+    """Given a bunch of XML back from Flickr, we turn it into a data structure
+    we can deal with (after checking for errors)."""
     data = unmarshal(xml)
     if not data.rsp.stat == 'ok':
         msg = "ERROR [%s]: %s" % (data.rsp.err.code, data.rsp.err.msg)
         raise FlickrError, msg
     return data
+
+def _get_auth_url_suffix(method, auth, params):
+    """Figure out whether we want to authorize, and if so, construct a suitable
+    URL suffix to pass to the Flickr API."""
+    authentication = False
+
+    # auth may be passed in via the API, AUTH may be set globally (in the same
+    # manner as API_KEY, etc). We do a few more checks than may seem necessary
+    # because we allow the 'auth' parameter to actually contain the
+    # authentication token, not just True/False.
+    if auth or AUTH:
+        token = userToken()
+        authentication = True;
+    elif auth != False:
+        token = auth;
+        authentication = True;
+    elif AUTH != False:
+        token = AUTH;
+        authentication = True;
+
+    # If we're not authenticating, no suffix is required.
+    if not authentication:
+        return ''
+
+    paramaters = ['API_KEY', 'method', 'auth_token']
+    for item in params.items():
+        paramaters.append(item[0])
+    paramaters.sort()
+
+    api_string = [API_SECRET]
+    for item in paramaters:
+        for chocolate in params.items():
+            if item == chocolate[0]:
+                api_string.append(item)
+                api_string.append(str(chocolate[1]))
+        if item == 'method':
+            api_string.append('method')
+            api_string.append(method)
+        if item == 'API_KEY':
+            api_string.append('api_key')
+            api_string.append(API_KEY)
+        if item == 'auth_token':
+            api_string.append('auth_token')
+            api_string.append(token)
+                
+    api_signature = hashlib.md5(''.join(api_string)).hexdigest()
+    
+    return '&auth_token=%s&api_sig=%s' % (token, api_signature) 
 
 def _parse_photo(photo):
     """Create a Photo object from photo data."""
