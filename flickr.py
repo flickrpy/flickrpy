@@ -57,7 +57,7 @@ class FlickrError(Exception): pass
 class Photo(object):
     """Represents a Flickr Photo."""
 
-    __readonly = ['id', 'secret', 'server', 'isfavorite', 'license', 'rotation', 
+    __readonly = ['id', 'secret', 'server', 'farm', 'isfavorite', 'license', 'rotation', 
                   'owner', 'dateposted', 'datetaken', 'takengranularity', 
                   'title', 'description', 'ispublic', 'isfriend', 'isfamily', 
                   'cancomment', 'canaddmeta', 'comments', 'tags', 'permcomment', 
@@ -68,7 +68,7 @@ class Photo(object):
                  title=None, description=None, ispublic=None, \
                  isfriend=None, isfamily=None, cancomment=None, \
                  canaddmeta=None, comments=None, tags=None, secret=None, \
-                 isfavorite=None, server=None, license=None, rotation=None):
+                 isfavorite=None, server=None, farm=None, license=None, rotation=None):
         """Must specify id, rest is optional."""
         self.__loaded = False
         self.__cancomment = cancomment
@@ -86,6 +86,7 @@ class Photo(object):
         self.__rotation = rotation
         self.__secret = secret
         self.__server = server
+        self.__farm = farm
         self.__tags = tags
         self.__title = title
         
@@ -120,6 +121,7 @@ class Photo(object):
 
         self.__secret = photo.secret
         self.__server = photo.server
+        self.__farm = photo.farm        
         self.__isfavorite = photo.isfavorite
         self.__license = photo.license
         self.__rotation = photo.rotation
