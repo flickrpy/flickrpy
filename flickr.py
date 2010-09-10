@@ -849,9 +849,12 @@ def _dopost(method, auth=False, **params):
     #print "***** do post %s" % method
 
     params = _prepare_params(params)
-    url = '%s%s/%s' % (HOST, API, _get_auth_url_suffix(method, auth, params))
-    payload = 'api_key=%s&method=%s&%s'% \
-          (API_KEY, method, urlencode(params))
+    url = '%s%s/?api_key=%s&method=%s&%s'% \
+          (HOST, API, API_KEY, method, _get_auth_url_suffix(method, auth, params))
+
+    # There's no reason this can't be str(urlencode(params)). I just wanted to
+    # have it the same as the rest.
+    payload = '%s' % (urlencode(params))
 
     #another useful debug print statement
     #print url
