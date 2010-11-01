@@ -34,8 +34,8 @@ HOST = 'http://flickr.com'
 API = '/services/rest'
 
 # set these here or using flickr.API_KEY in your application
-API_KEY = ''
-API_SECRET = ''
+API_KEY = '9068df19cb7d78e0b7d4fb59021c85a5'
+API_SECRET = '2b90cfa17b9eef58'
 email = None
 password = None
 AUTH = False
@@ -878,6 +878,32 @@ def _get_data(xml):
         raise FlickrError, msg
     return data
 
+def _get_api_sig(params):
+    """Generate API signature."""
+    token = userToken()
+    parameters = ['api_key', 'auth_token']
+    for item in params.items():
+        parameters.append(item[0])
+    parameters.sort()
+
+    api_string = [API_SECRET]
+
+    for item in parameters:
+        for chocolate in params.items():
+            if item == chocolate[0]:
+                api_string.append(item)
+                api_string.append(str(chocolate[1]))
+        if item == 'api_key':
+        	api_string.append('api_key')
+        	api_string.append(API_KEY)
+        if item == 'auth_token':
+            api_string.append('auth_token')
+            api_string.append(token)
+
+    api_signature = hashlib.md5(''.join(api_string)).hexdigest()
+
+    return api_signature
+
 def _get_auth_url_suffix(method, auth, params):
     """Figure out whether we want to authorize, and if so, construct a suitable
     URL suffix to pass to the Flickr API."""
@@ -901,30 +927,10 @@ def _get_auth_url_suffix(method, auth, params):
     if not authentication:
         return ''
 
-    paramaters = ['API_KEY', 'method', 'auth_token']
-    for item in params.items():
-        paramaters.append(item[0])
-    paramaters.sort()
+    full_params = params
+    full_params['method'] = method
 
-    api_string = [API_SECRET]
-    for item in paramaters:
-        for chocolate in params.items():
-            if item == chocolate[0]:
-                api_string.append(item)
-                api_string.append(str(chocolate[1]))
-        if item == 'method':
-            api_string.append('method')
-            api_string.append(method)
-        if item == 'API_KEY':
-            api_string.append('api_key')
-            api_string.append(API_KEY)
-        if item == 'auth_token':
-            api_string.append('auth_token')
-            api_string.append(token)
-                
-    api_signature = hashlib.md5(''.join(api_string)).hexdigest()
-    
-    return '&auth_token=%s&api_sig=%s' % (token, api_signature) 
+    return '&auth_token=%s&api_sig=%s' % (token, _get_api_sig(full_params) )
 
 def _parse_photo(photo):
     """Create a Photo object from photo data."""
