@@ -1,115 +1,103 @@
-"""
-This file is for the future Flickr Upload API method,
-which will allow programs that wish to upload to flickr
-the ability, if used with the Authentication module.
-"""
-
-# This is a really UGLY script at the moment
-# I am only uploading my work in progress to SVN
-# for those curious people.
-
-# This script MAY work, though I get a auth error.
-
-__author__ = "Joshua Henderson <joshhendo@gmail.com>"
-__version__ = "$Rev: 2 $"
-__date__ = "$Date: 2007-03-23 06:28:46 +1100 (Fri, 23 Mar 2007) $"
-__copyright__ = "Copyright 2008 Joshua Henderson"
-
-# This script may work. You will need to have the ofllowing
-# filled out here, as well as a standard flickr.py setup!
-
-API_KEY = ''
-API_SECRET = ''
-
-token = ""
-
-# ~~This script is currently UNUSABLE!~~
-# EDIT: This script MAY work, though I get a auth error (I could have copied
-# and pased the wrong auth code). Use at own risk.
-
-# I will add a message when it sort of works.
-#
-# This script will get very messy while I am
-# making it, so bear with me.
-#
-# Joshua Henderson <joshhendo@gmail.com>
-
-import flickr,urllib,urllib2
-import hashlib
+__author__ = "Khosrow Ebrahimpour <khosrow.ebrahimpour@gmail.com>"
+__version__ = "$Rev: 3 $"
+__date__ = "$Date: 2010-10-31 19:05:46 +0400 (Sun, 31 Oct 2010) $"
+__copyright__ = "Copyright 2010 Khosorw Ebrahimpour"
 
 
-# This is a temp variable to test functions with
-imageToUpload = "/home/josh/me.jpg"
+import httplib
+import mimetypes
+import flickr
+from xml.dom import minidom
 
-def checkextension (image):
-	check = 0
-	extension = ""
-	for each in image:
-		if check:
-			extension = extension + each
-		if each == ".":
-			check = 1
-			# When I said this script will be messy
-			# I meant it!
-	return extension
+		
+def upload(self,filename, **params):
+	#x = flickr._prepare_params(params)
+	#args['api_key'] = self.__api_key 
+	args = params
+	sig = flickr._get_api_sig(params=params)
 
-def authentication(token, **params):
-	# I said this would get ugly
-	# This has been copied straight from the _doget function
-	# in flickr.py, but is not the entire funciton
-	#
-	# What I will do later is seperate the auth part of _doget
-	# into it's own function so whenever I update this particular
-	# code, it will update everything that uses it at one time.
+	args['api_key'] = flickr.API_KEY
+	args['api_sig'] = sig
+	args['auth_token'] = flickr.userToken()
 	
-	paramaters = ['API_KEY', 'auth_token']
+	f = file(filename, 'rb')
+	photo_data = f.read()
+	f.close()
+			
+	# now make a "files" array to pass to uploader
+	files = [('photo', filename, photo_data)]
+	response = post_multipart('api.flickr.com', '/services/upload/', args, files)
+	
+	# use get data since error checking is handled by it already
+	data = flickr._get_data(minidom.parseString(response))
+	photo = flickr.Photo(data.rsp.photoid.text)
+		
+	return photo
 
-	for item in params.items():
-            paramaters.append(item[0])
 
-        paramaters.sort()
+"""
+Code for post_multipart, encode_multipart_formdata, and get_content_type taken from
+http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
+PSF Licensed code
+"""
+		
+def post_multipart(host, selector, fields, files):
+    """
+    Post fields and files to an http host as multipart/form-data.
+    fields is a sequence of (name, value) elements for regular form fields.
+    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    Return the server's response page.
+    """
+    content_type, body = encode_multipart_formdata(fields, files)
+    h = httplib.HTTP(host)
+    h.putrequest('POST', selector)
+    h.putheader('content-type', content_type)
+    h.putheader('content-length', str(len(body)))
+    h.endheaders()
+    h.send(body)
+    errcode, errmsg, headers = h.getreply()
+    return h.file.read()
 
-        api_string = [API_SECRET]
-        for item in paramaters:
-            for chocolate in params.items():
-                if item == chocolate[0]:
-                    api_string.append(item)
-                    api_string.append(chocolate[1])
-            if item == 'method':
-                api_string.append('method')
-                api_string.append(method)
-            if item == 'API_KEY':
-                api_string.append('api_key')
-                api_string.append(API_KEY)
-            if item == 'auth_token':
-                api_string.append('auth_token')
-                api_string.append(token)
-                    
-        api_string2 = ''.join(api_string)
-	print api_string2
-	api_signature = hashlib.md5(api_string2).hexdigest()
-        
-	#no URL needed, just auth token and signature
-        #url = url + '&auth_token=%s&api_sig=%s' % (token, api_signature) 
-	return api_signature
+def encode_multipart_formdata(fields, files):
+    """
+    fields is a sequence of (name, value) elements for regular form fields.
+    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    Return (content_type, body) ready for httplib.HTTP instance
+    """
 
-print checkextension (imageToUpload)
+    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+    CRLF = '\r\n'
+    L = []
+    for (key, value) in fields.items():
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(value)
 
-# This page can be a real help: http://docs.python.org/lib/node578.html
+	
+    for (key, filename, value) in files:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        L.append('Content-Type: %s' % get_content_type(filename))
+        L.append('')
+        L.append(value)
+    L.append('--' + BOUNDARY + '--')
+    L.append('')
+    body = CRLF.join(L)
+    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    return content_type, body
+       
+def get_content_type(filename):
+    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    
+    
+if __name__ == '__main__':
+	# the code below is an example of how to do an upload
+	# please use it as a guide only
+	photo = upload(filename='image.jpg', title='some photo', tags='tag1 tag2', description='A test photo')	
 
-input = open(imageToUpload,'r')
-s = input.readlines()
-post = urllib.urlencode({'photo': s, 'title': 'testupload', 'api_sig': authentication(token, title='testupload'), 'auth_token': token})
+	print "your photo is now at : %s" % photo.getURL()
 
-print post
+	 
+    
 
-# Error: Instead of uploading the text /home/josh/me.jpg,
-# I need to open the file first using the file commands - Fixed!
-
-response = urllib2.urlopen ('http://api.flickr.com/services/upload/', post)
-
-for each in response:
-	print each
-	# API Key still needs to be made
-# Still in debugging mode.
-# Work in progress
