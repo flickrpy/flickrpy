@@ -23,7 +23,7 @@ AND ACKNOWLEDGEMENT OF AUTHORSHIP REMAIN.
 __author__ = "James Clarke <james@jamesclarke.info>"
 __version__ = "$Rev$"
 __date__ = "$Date$"
-__copyright__ = "Copyright: 2004-2006 James Clarke; Portions: 2007-2008 Joshua Henderson"
+__copyright__ = "Copyright: 2004-2010 James Clarke; Portions: 2007-2008 Joshua Henderson"
 
 from urllib import urlencode, urlopen
 from xml.dom import minidom
@@ -39,7 +39,7 @@ API_SECRET = ''
 email = None
 password = None
 AUTH = False
-
+debug = False
 
 # The next 2 variables are only importatnt if authentication is used
 
@@ -277,7 +277,7 @@ class Photo(object):
         return [loc.latitude, loc.longitude]
         
         
-    def getComments(self) :
+    def getComments(self):
         """"
         get list of comments for photo
         returns a list of comment objects
@@ -290,7 +290,45 @@ class Photo(object):
             return None
         return data.rsp.comments
             
-    
+    def _getDirectURL(self, size):
+        return "http://farm%s.static.flickr.com/%s/%s_%s_%s.jpg" % \
+            (self.farm, self.server, self.id, self.secret, size)
+        
+    def getThumbnail(self): 
+        """
+        Return a string representation of the URL to the thumbnail
+        image (not the thumbnail image page).
+        """
+        return self._getDirectURL('t')
+
+    def getSmallSquare(self):
+        """
+        Return a string representation of the URL to the small square
+        image (not the small square image page).
+        """
+        return self._getDirectURL('s')
+
+    def getSmall(self):
+        """
+        Return a string representation of the URL to the small 
+        image (not the small image page).
+        """
+        return self._getDirectURL('m')
+
+    def getMedium(self):
+        """
+        Return a string representation of the URL to the medium 
+        image (not the medium image page).
+        """
+        return self._getDirectURL('z')
+
+    def getLarge(self):
+        """
+        Return a string representation of the URL to the large 
+        image (not the large image page).
+        """
+        return self._getDirectURL('b')
+
                 
 class Photoset(object):
     """A Flickr photoset."""
@@ -655,7 +693,20 @@ def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   page=page, sort=sort)
 	
     return data.rsp.photos.pages
-	
+
+def photos_get_recent(extras='', per_page='', page=''):
+    """http://www.flickr.com/services/api/flickr.photos.getRecent.html
+    """
+    method = 'flickr.photos.getRecent'
+    data = _doget(method, extras=extras, per_page=per_page, page=page)
+    photos = []
+    if data.rsp.photos.__dict__.has_key('photo'):
+        if isinstance(data.rsp.photos.photo, list):
+            for photo in data.rsp.photos.photo:
+                photos.append(_parse_photo(photo))
+        else:
+            photos = [_parse_photo(data.rsp.photos.photo)]
+    return photos    
 	
 	
 #XXX: Could be class method in User
@@ -840,7 +891,8 @@ def _doget(method, auth=False, **params):
                   _get_auth_url_suffix(method, auth, params))
 
     #another useful debug print statement
-    #print url
+    if debug:       
+        print "_doget", url
     
     return _get_data(minidom.parse(urlopen(url)))
 
@@ -857,8 +909,9 @@ def _dopost(method, auth=False, **params):
     payload = '%s' % (urlencode(params))
 
     #another useful debug print statement
-    #print url
-    #print payload
+    if debug:
+        print "_dopost url", url
+        print "_dopost payload", payload
     
     return _get_data(minidom.parse(urlopen(url, payload)))
 
