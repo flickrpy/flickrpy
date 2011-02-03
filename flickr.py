@@ -619,12 +619,11 @@ class Group(object):
         
         group = data.rsp.group
 
-        self.__name = photo.name.text
-        self.__members = photo.members.text
-        self.__online = photo.online.text
-        self.__privacy = photo.privacy.text
-        self.__chatid = photo.chatid.text
-        self.__chatcount = photo.chatcount.text
+        self.__name = group.name.text
+        self.__description = group.description.text
+        self.__members = group.members.text
+        self.__privacy = group.privacy.text
+
 
     def __str__(self):
         return '<Flickr Group %s>' % self.id
