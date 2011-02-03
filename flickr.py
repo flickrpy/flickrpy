@@ -23,7 +23,7 @@ AND ACKNOWLEDGEMENT OF AUTHORSHIP REMAIN.
 __author__ = "James Clarke <james@jamesclarke.info>"
 __version__ = "$Rev$"
 __date__ = "$Date$"
-__copyright__ = "Copyright: 2004-2010 James Clarke; Portions: 2007-2008 Joshua Henderson"
+__copyright__ = "Copyright: 2004-2010 James Clarke; Portions: 2007-2008 Joshua Henderson; Portions: 2011 Andrei Vlad Vacariu"
 
 from urllib import urlencode, urlopen
 from xml.dom import minidom
@@ -329,6 +329,23 @@ class Photo(object):
         """
         return self._getDirectURL('b')
 
+    def getGalleryList(self, per_page='', page=''):
+        """
+        get list of galleries which
+        contain the photo.
+        Galleries are returned sorted by 
+        date which the photo was added
+        to the gallery
+        """
+        if per_page > 500:      # Max is 500
+            per_page = 500
+        method = "flickr.galleries.getListForPhoto"
+        try:
+            data = _doget(method, photo_id=self.id, per_page=per_page, \
+                            page=page)
+        except FlickrError:
+            return None
+        return data.rsp.galleries.gallery
                 
 class Photoset(object):
     """A Flickr photoset."""
@@ -559,6 +576,10 @@ class User(object):
         return favorites_getList(user_id=self.id, per_page=per_page, \
                                  page=page)
 
+    def getGalleries(self, per_page='', page=''):
+        return galleries_getList(user_id=self.id, per_page=per_page, \
+                                 page=page)
+
 class Group(object):
     """Flickr Group Pool"""
     def __init__(self, id, name=None, members=None, online=None,\
@@ -640,6 +661,151 @@ class Tag(object):
     def __str__(self):
         return '<Flickr Tag %s (%s)>' % (self.id, self.text)
 
+class Gallery(object):
+    """Represents a Flickr Gallery.
+    Takes gallery_id as argument.
+    """
+    # There are other attributes a Gallery could have,
+    # but defining them here might create errors.
+    # Might be useful to define them here, though,
+    # if the user wants to change them when creating
+    # an instance.
+
+    def __init__(self, id, owner=None, title=None, description=None, \
+                 date_create=None, date_update=None, count_photos=None, \
+                 count_videos=None, primary_photo_id=None, \
+                 primary_photo_server=None, primary_photo_farm=None, \
+                 primary_photo_secret=None):
+
+        self.__loaded = False
+
+        self.__url = None
+
+        self.__id = id
+        self.__owner = owner
+        self.__title = title
+        self.__description = description
+        self.__date_create = date_create
+        self.__date_update = date_update
+        self.__count_photos = count_photos
+        self.__count_videos = count_videos
+        self.__primary_photo_id = primary_photo_id
+        self.__primary_photo_server = primary_photo_server
+        self.__primary_photo_farm = primary_photo_farm
+        self.__primary_photo_secret = primary_photo_secret
+
+    id = property(lambda self: self._general_getattr('id'))
+    url = property(lambda self: self._general_getattr('url'))
+    owner = property(lambda self: self._general_getattr('owner'))
+    title = property(lambda self: self._general_getattr('title'))
+    description = property(lambda self: self._general_getattr('description'))
+    date_create = property(lambda self: self._general_getattr('date_create'))
+    date_update = property(lambda self: self._general_getattr('date_update'))
+    count_photos = property(lambda self: self._general_getattr('count_photos'))
+    count_videos = property(lambda self: self._general_getattr('count_videos'))
+    primary_photo_id = property(lambda self: self._general_getattr('primary_photo_id'))
+    primary_photo_server = property(lambda self: self._general_getattr('primary_photo_server'))
+    primary_photo_farm = property(lambda self: self._general_getattr('primary_photo_farm'))
+    primary_photo_secret = property(lambda self: self._general_getattr('primary_photo_secret'))
+    
+    def _general_getattr(self, var):
+        """Generic get attribute function."""
+        if getattr(self, "_%s__%s" % (self.__class__.__name__, var)) is None \
+           and not self.__loaded:
+            self._load_properties()
+        return getattr(self, "_%s__%s" % (self.__class__.__name__, var))
+    
+    def _load_properties(self):
+        """Loads the properties from Flickr."""
+        method = 'flickr.galleries.getInfo'
+        data = _doget(method, gallery_id=self.id)
+
+        self.__loaded = True
+        
+        gallery = data.rsp.gallery
+
+        self.__url = gallery.url
+        self.__owner = gallery.owner
+        self.__title = gallery.title.text
+        self.__description = gallery.description.text
+        self.__date_create = gallery.date_create
+        self.__date_update = gallery.date_update
+        self.__count_photos = gallery.count_photos
+        self.__count_videos = gallery.count_videos
+        self.__primary_photo_id = gallery.primary_photo_id
+        self.__primary_photo_server = gallery.primary_photo_server
+        self.__primary_photo_farm = gallery.primary_photo_farm
+        self.__primary_photo_secret = gallery.primary_photo_secret
+
+    def __str__(self):
+        return '<Flickr Gallery %s>' % self.id
+
+    def addPhoto(self, photo, comment=''):
+        """Add a new Photo to the Gallery."""
+        method = 'flickr.galleries.addPhoto'
+        _dopost(method, auth=True, photo_id=photo.id, gallery_id=self.id, \
+                comment=comment)
+        return True
+
+    def editMeta(self, title='', description=''):
+        """Modify the meta-data for a gallery.
+        In original API, title is required, but here, if not
+        specified, it will use the current title. (So it's optional)
+        
+        Calling this function without any parameters will blank out the description.
+        """
+        method = 'flickr.galleries.editMeta'
+        
+        if title == '':
+            title = self.title
+
+        _dopost(method, auth=True, gallery_id=self.id, title=title, \
+                description=description)
+        return True
+
+    def editPhoto(self, photo, comment):
+        """Change the comment for the given Photo."""
+        method = 'flickr.galleries.editPhoto'
+        _dopost(method, auth=True, gallery_id=self.id, photo_id=photo.id, \
+                comment=comment)
+        return True
+
+    def editPhotos(self, primary_photo, *photos):
+        """Modify the photos in a gallery. Use this method to add, 
+        remove and re-order photos."""
+        method = 'flickr.galleries.editPhotos'
+
+        photo_ids = ','.join([photo.id for photo in photos])
+        
+        _dopost(method, auth=True, gallery_id=self.id, \
+                primary_photo_id=primary_photo.id, photo_ids=photo_ids)
+        return True
+
+    def getPhotos(self, per_page='', page='', **extras):
+        """Return the list of photos for a gallery.
+        
+        *extras (optional): A comma-delimited list of extra information
+        to fetch for each returned record. Currently supported fields are:
+        description, license, date_upload, date_taken, owner_name,
+        icon_server, original_format, last_update, geo, tags, machine_tags,
+        o_dims, views, media, path_alias, url_sq, url_t, url_s, url_m, url_o
+        """
+        method = 'flickr.galleries.getPhotos'
+        
+        extras = ','.join('%s=%s' % (i, v) for i, v in dict(extras).items())
+    
+        data = _doget(method, gallery_id=self.id, per_page=per_page, \
+                      page=page, extras=extras)
+        photos = {} # dict with photo instance as key and comment as value.
+                    # if there's no comment, '' will be assigned.
+        for photo in data.rsp.photos.photo:
+            if photo.has_comment == '1':
+                photos[_parse_photo(photo)] = photo.comment.text
+            elif photo.has_comment == '0':
+                photos[_parse_photo(photo)] = ''
+            else: # Shouldn't EVER get here
+                raise FlickrError
+        return photos
     
 #Flickr API methods
 #see api docs http://www.flickr.com/services/api/
@@ -866,7 +1032,29 @@ def interestingness():
     else:
         photos = [_parse_photo(data.rsp.photos.photo)]
     return photos    
+
+def galleries_create(title, description, primary_photo_id=None):
+    """Create a new gallery."""
+    method = 'flickr.galleries.create'
+    if primary_photo_id is None:
+        _dopost(method, auth=True, title=title, description=description, 
+                primary_photo_id=primary_photo_id)
+    elif primary_photo_id is not None:
+        _dopost(method, auth=True, title=title, description=description)
     
+def galleries_getList(user_id='', per_page='', page=''):
+    """Returns list of Gallery objects."""
+    method = 'flickr.galleries.getList'
+    data = _doget(method, auth=False, user_id=user_id, per_page=per_page, \
+                  page=page)
+    galleries = []
+    if isinstance(data.rsp.galleries.gallery, list):
+        for gallery in data.rsp.galleries.gallery:
+            galleries.append(_parse_gallery(gallery)) 
+    else:
+        galleries = [_parse_gallery(data.rsp.galleries.gallery)]
+    return galleries
+
 def test_login():
     method = 'flickr.test.login'
     data = _doget(method, auth=True)
@@ -998,6 +1186,30 @@ def _parse_photo(photo):
               isfriend=isfriend, isfamily=isfamily, secret=secret, \
               server=server)        
     return p
+
+def _parse_gallery(gallery):
+    """Create a Gallery object from gallery data."""
+    # This might not work!! NEEDS TESTING
+    url = gallery.url
+    owner = User(gallery.owner)
+    title = gallery.title.text
+    description = gallery.description.text
+    date_create = gallery.date_create
+    date_update = gallery.date_update
+    count_photos = gallery.count_photos
+    count_videos = gallery.count_videos
+    primary_photo_id = gallery.primary_photo_id
+    primary_photo_server = gallery.primary_photo_server
+    primary_photo_farm = gallery.primary_photo_farm
+    primary_photo_secret = gallery.primary_photo_secret
+    g = Gallery(gallery.id, owner=owner, title=title, description=description, \
+                date_create=date_create, date_update=date_update, \
+                count_photos=count_photos, count_videos=count_videos, \
+                primary_photo_id=primary_photo_id, \
+                primary_photo_server=primary_photo_server, \
+                primary_photo_farm=primary_photo_farm, \
+                primary_photo_secret=primary_photo_secret)
+    return g
 
 #stolen methods
 
