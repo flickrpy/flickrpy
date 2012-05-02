@@ -222,6 +222,34 @@ class Photo(object):
         self.__title = title
         self.__description = description
 
+    def getAllContexts(self):
+        """Retrieves lists of the pools/sets the photo is in"""
+        method = 'flickr.photos.getAllContexts'
+        data = _doget(method, photo_id=self.id)
+        d = {'pools': [], 'sets': []}
+        if hasattr(data.rsp, "pool"):
+            if isinstance(data.rsp.pool, list):
+                for pool in data.rsp.pool:
+                    d["pools"].append({"id": pool.id, "title": pool.title})
+            else:
+                d["pools"].append({"id": data.rsp.pool.id, "title": data.rsp.pool.title})
+        if hasattr(data.rsp, "set"):
+            if isinstance(data.rsp.set, list):
+                for theset in data.rsp.set:
+                    d["sets"].append({"id": theset.id, "title": theset.title})
+            else:
+                d["sets"].append({"id": data.rsp.set.id, "title": data.rsp.set.title})
+        return d
+
+    def getPoolCount(self):
+        """Retrieves a count of the pools the photo is in"""
+        d = self.getAllContexts()
+        return len( d["pools"] )
+
+    def getSetCount(self):
+        """Retrieves a count of the pools the photo is in"""
+        d = self.getAllContexts()
+        return len( d["sets"] )
     
     def getURL(self, size='Medium', urlType='url'):
         """Retrieves a url for the photo.  (flickr.photos.getSizes)
