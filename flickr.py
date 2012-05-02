@@ -1159,13 +1159,13 @@ def _get_auth_url_suffix(method, auth, params):
     # authentication token, not just True/False.
     if auth or AUTH:
         token = userToken()
-        authentication = True;
+        authentication = True
     elif auth != False:
-        token = auth;
-        authentication = True;
+        token = auth
+        authentication = True
     elif AUTH != False:
-        token = AUTH;
-        authentication = True;
+        token = AUTH
+        authentication = True
 
     # If we're not authenticating, no suffix is required.
     if not authentication:
@@ -1174,7 +1174,7 @@ def _get_auth_url_suffix(method, auth, params):
     full_params = params
     full_params['method'] = method
 
-    return '&auth_token=%s&api_sig=%s' % (token, _get_api_sig(full_params) )
+    return '&auth_token=%s&api_sig=%s' % (token, _get_api_sig(full_params))
 
 def _parse_photo(photo):
     """Create a Photo object from photo data."""
