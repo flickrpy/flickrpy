@@ -285,15 +285,18 @@ class Photo(object):
             ret.append(d)
         return ret
     
-    #def getExif(self):
-        #method = 'flickr.photos.getExif'
-        #data = _doget(method, photo_id=self.id)
-        #ret = []
-        #for exif in data.rsp.photo.exif:
-            #print exif.label, dir(exif)
-            ##ret.append({exif.label:exif.})
-        #return ret
-        ##raise FlickrError, "No URL found"
+    def getExif(self):
+        """Retrieves EXIF metadata for the photo.
+
+        Example usage:
+        
+            >>> exif = photo.getExif()
+            >>> print exif.camera
+            >>> for t in exif.tags:
+            ...    print '%s: %s' % (t.label, t.raw)
+
+        """
+        return Exif.getExif(self.id)
         
     def getLocation(self):
         """
@@ -691,6 +694,57 @@ class Tag(object):
 
     def __str__(self):
         return '<Flickr Tag %s (%s)>' % (self.id, self.text)
+
+
+class Exif(object):
+    def __init__(self, camera, tags):
+        self.camera = camera
+        self.tags = tags
+
+    def __str__(self):
+        return '<Flickr Exif>'
+
+    @staticmethod
+    def getExif(photo_id_):
+        method = 'flickr.photos.getExif'
+        data = _doget(method, photo_id=photo_id_)
+        return Exif.parse(data.rsp.photo)
+
+    @staticmethod
+    def parse(photo):
+        camera = getattr(photo, 'camera', '')
+        tags = []
+        if hasattr(photo, 'exif'):
+            if isinstance(photo.exif, list):
+                tags = [ExifTag.parse(e) for e in photo.exif]
+            else:
+                tags = [ExifTag.parse(photo.exif)]
+        return Exif(camera, tags)
+
+
+class ExifTag(object):
+    def __init__(self, tagspace, tagspaceid, tag, label, raw, clean):
+        self.tagspace = tagspace
+        self.tagspaceid = tagspaceid
+        self.tag = tag
+        self.label = label
+        self.raw = raw
+        self.clean = clean
+
+    def __str__(self):
+        return '<Flickr ExifTag %s (%s)>' % (self.tag, self.label)
+
+    @staticmethod
+    def parse(exif):
+        raw = ''
+        if hasattr(exif, 'raw'):
+            raw = exif.raw.text
+        clean = ''
+        if hasattr(exif, 'clean'):
+            clean = exif.clean.text
+        return ExifTag(exif.tagspace, exif.tagspaceid, exif.tag, exif.label,
+                       raw, clean)
+
 
 class Gallery(object):
     """Represents a Flickr Gallery.
