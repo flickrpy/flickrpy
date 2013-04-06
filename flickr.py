@@ -383,11 +383,25 @@ class Photo(object):
         return data.rsp.galleries.gallery
                 
 class Photoset(object):
-    """A Flickr photoset."""
+    """A Flickr photoset.
+    
+    If constructed with just an ID, the rest of the data about the Photoset is
+    fetched from the API.
+    
+    """
 
-    def __init__(self, id, title, primary, photos=0, description='', \
+    def __init__(self, id, title=None, primary=None, photos=0, description='', \
                  secret='', server=''):
         self.__id = id
+
+        if not title and not primary:
+            method = 'flickr.photosets.getInfo'
+            data = _doget(method, photoset_id=self.id)
+            title = data.rsp.photoset.title.text
+            primary = Photo(data.rsp.photoset.primary)
+            description = data.rsp.photoset.description.text
+            count = data.rsp.photoset.photos
+
         self.__title = title
         self.__primary = primary
         self.__description = description
@@ -412,6 +426,14 @@ class Photoset(object):
         data = _doget(method, photoset_id=self.id)
         photos = data.rsp.photoset.photo
         p = []
+
+        # If there's only one photo in the set, the API returns a single photo,
+        # not a list
+        try:
+            iter(photos)
+        except TypeError:
+            photos = [photos]
+
         for photo in photos:
             p.append(Photo(photo.id, title=photo.title, secret=photo.secret, \
                            server=photo.server))
