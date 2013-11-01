@@ -928,7 +928,7 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_upload_date='', max_upload_date='',\
                   min_taken_date='', max_taken_date='', \
                   license='', per_page='', page='', sort='',\
-                  safe_search='', content_type='' ):
+                  safe_search='', content_type='', **kwargs):
     """Returns a list of Photo objects.
 
     If auth=True then will auth the user.  Can see private etc
@@ -943,7 +943,7 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   license=license, per_page=per_page,\
                   page=page, sort=sort,  safe_search=safe_search, \
                   content_type=content_type, \
-                  tag_mode=tag_mode)
+                  tag_mode=tag_mode, **kwargs)
     photos = []
     if data.rsp.photos.__dict__.has_key('photo'):
         if isinstance(data.rsp.photos.photo, list):
