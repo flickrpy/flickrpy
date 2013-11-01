@@ -104,13 +104,18 @@ class Photo(object):
         else:
             super(Photo, self).__setattr__(key, value)
 
-    def __getattr__(self, key):
-        if not self.__loaded:
-            self._load_properties()
+    def _val(self, key):
         if key in self.__class__.__readonly:
             return super(Photo, self).__getattribute__("_%s__%s" % (self.__class__.__name__, key))
         else:
             return super(Photo, self).__getattribute__(key)
+        
+    def __getattr__(self, key):
+        val = self._val(key)
+        if val == None and not self.__loaded:
+            self._load_properties()
+            val = self._val(key)
+        return val
 
     def _load_properties(self):
         """Loads the properties from Flickr."""
@@ -1289,9 +1294,10 @@ def _parse_photo(photo):
     isfamily = photo.isfamily
     secret = photo.secret
     server = photo.server
+    farm = photo.farm
     p = Photo(photo.id, owner=owner, title=title, ispublic=ispublic,\
               isfriend=isfriend, isfamily=isfamily, secret=secret, \
-              server=server)        
+              server=server, farm=farm)        
     return p
 
 def _parse_gallery(gallery):
