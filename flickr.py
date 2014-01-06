@@ -61,7 +61,7 @@ class Photo(object):
                   'owner', 'dateposted', 'datetaken', 'takengranularity', 
                   'title', 'description', 'ispublic', 'isfriend', 'isfamily', 
                   'cancomment', 'canaddmeta', 'comments', 'tags', 'permcomment', 
-                  'permaddmeta', 'url']
+                  'permaddmeta', 'url', 'views']
 
     #XXX: Hopefully None won't cause problems
     def __init__(self, id, owner=None, dateuploaded=None, \
@@ -69,7 +69,7 @@ class Photo(object):
                  isfriend=None, isfamily=None, cancomment=None, \
                  canaddmeta=None, comments=None, tags=None, secret=None, \
                  isfavorite=None, server=None, farm=None, license=None, \
-                 rotation=None, url=None):
+                 rotation=None, url=None, views=None):
         """Must specify id, rest is optional."""
         self.__loaded = False
         self.__cancomment = cancomment
@@ -97,6 +97,7 @@ class Photo(object):
         self.__permcomment = None
         self.__permaddmeta = None
         self.__url = None
+        self.__views = None
     
     def __setattr__(self, key, value):
         if key in self.__class__.__readonly:
@@ -154,7 +155,7 @@ class Photo(object):
         self.__canaddmeta = photo.editability.canaddmeta
         self.__comments = photo.comments.text
         self.__url = photo.urls.url.text
-
+        self.__views = photo.views
 
         try:
             self.__permcomment = photo.permissions.permcomment
