@@ -387,6 +387,35 @@ class Photo(object):
         except FlickrError:
             return None
         return data.rsp.galleries.gallery
+
+    def getFavoriteCount(self):
+        """
+        Return the number of favorites to the specific photo
+        """
+        method = 'flickr.photos.getFavorites'
+        data = _doget(method, photo_id=self.id)
+        return data.rsp.photo.total
+
+    def getFavoriteUsers(self):
+        """
+        Return the list of users who marked the specific photo as favorite
+        return format: { userid, username, date of marking favorite}
+        """
+        method = 'flickr.photos.getFavorites'
+        data = _doget(method, photo_id=self.id)
+        u = []
+        try:
+            users = data.rsp.photo.person
+        except AttributeError:
+            return u        # there are no favorite of this photo
+        try:
+            iter(users)
+        except TypeError:
+            users = [users]   # there is only one favorite, so make is a list
+        for user in users:
+            u.append({"id": user.nsid, "username": user.username, "favedate": user.favedate})
+        return u
+                
                 
 class Photoset(object):
     """A Flickr photoset.
