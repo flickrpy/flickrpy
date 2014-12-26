@@ -998,7 +998,7 @@ def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_taken_date=min_taken_date, \
                   max_taken_date=max_taken_date, \
                   license=license, per_page=per_page,\
-                  page=page, sort=sort)
+                  page=page, sort=sort, tag_mode=tag_mode)
 	
     return data.rsp.photos.pages
 
